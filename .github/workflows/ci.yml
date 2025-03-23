@@ -1,0 +1,170 @@
+name: RGB Provider CI/CD
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rgb_provider_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      kafka:
+        image: confluentinc/cp-kafka:7.3.0
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+        ports:
+          - 9092:9092
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Build with Gradle
+      run: ./gradlew build -x test
+    
+    - name: Run tests
+      run: ./gradlew test
+    
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: |
+          build/test-results/**/*.xml
+
+  analyze:
+    name: Code Analysis
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    # Somente executar na develop e main
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Sonar precisa do histórico completo
+    
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+    
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Build and analyze with SonarCloud
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # Gere esse token no SonarCloud
+      run: >
+        ./gradlew sonar
+        -Dsonar.projectKey=rgb-net-provider
+        -Dsonar.organization=renamrgb
+        -Dsonar.host.url=https://sonarcloud.io
+
+  deploy-develop:
+    name: Deploy to Development
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Build JAR
+      run: ./gradlew bootJar
+    
+    - name: Deploy to Development Server
+      run: echo "Aqui você adicionaria os comandos para deploy em ambiente de desenvolvimento"
+      # Exemplo:
+      # run: |
+      #   scp build/libs/*.jar user@dev-server:/path/to/deployment/
+      #   ssh user@dev-server 'systemctl restart rgb-provider'
+
+  deploy-production:
+    name: Deploy to Production
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    # Adicionar aprovação manual antes do deploy de produção
+    environment:
+      name: production
+      url: https://api.example.com
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Build JAR
+      run: ./gradlew bootJar
+    
+    - name: Deploy to Production Server
+      run: echo "Aqui você adicionaria os comandos para deploy em ambiente de produção"
+      # Exemplo:
+      # run: |
+      #   scp build/libs/*.jar user@prod-server:/path/to/deployment/
+      #   ssh user@prod-server 'systemctl restart rgb-provider' 
