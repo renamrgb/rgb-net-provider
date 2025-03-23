@@ -2,22 +2,86 @@ spring:
   # Configurações JPA para desenvolvimento
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
     show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  # Configuração do PostgreSQL no Docker
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rgb_provider
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  # Configuração do Flyway
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    connect-retries: 10
+    connect-retry-interval: 5
+    clean-disabled: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  # Permitir referências circulares temporariamente
+  main:
+    allow-circular-references: true
 
-  # Desabilitar segurança para facilitar desenvolvimento
-  security:
-    basic:
-      enabled: false
+# Configurações do Undertow para 2GB de RAM e 4 CPUs
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  undertow:
+    # Configurações de I/O
+    io-threads: 4      # Número de threads de I/O (geralmente igual ao número de CPUs)
+    worker-threads: 32  # Número de worker threads (geralmente 8x o número de CPU cores)
+    buffer-size: 16384  # Buffer size em bytes (16KB)
+    direct-buffers: true # Usar buffers diretos para melhor desempenho
+    # Configurações adicionais do Undertow
+    accesslog:
+      enabled: true
+      pattern: "%t %a %r %s (%D ms)"
+      dir: logs
+      prefix: access-log.
+      suffix: log
+      rotate: true
+    options:
+      # Opções para melhorar a performance
+      ENABLE_HTTP2: true
+      ALWAYS_SET_KEEP_ALIVE: true
+      ALWAYS_SET_DATE: true
+      MAX_CONCURRENT_REQUESTS_PER_CONNECTION: 200
+      MAX_COOKIES: 200
+      MAX_HEADERS: 100
+      MAX_PARAMETERS: 1000
+      URL_CHARSET: UTF-8
+      RECORD_REQUEST_START_TIME: true
+  max-http-header-size: 16KB
+  max-http-post-size: 10MB
+
+# Desabilitar segurança para facilitar desenvolvimento
+security:
+  basic:
+    enabled: false
 
 # Configurações de logging para desenvolvimento
 logging:
   level:
     root: INFO
     com.rgbnet.provider: DEBUG
-    org.springframework.web: DEBUG
+    org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE 
+    org.hibernate.type.descriptor.sql: TRACE
+
+# Configurações JWT
+jwt:
+  secret: umasenhanovaemuitoforteparadesenvolvimentopodeserqualquercoisaaqui
+  expiration: 86400000  # 24 horas
+
+# Configurações de memória e CPU para a JVM
+# Para ser definido como variáveis de ambiente ou argumentos da JVM:
+# -Xms1G -Xmx2G -XX:ParallelGCThreads=4 

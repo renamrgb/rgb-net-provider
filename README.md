@@ -26,10 +26,12 @@ Este projeto utiliza uma arquitetura modular baseada em Event Sourcing e CQRS, p
 ## Tecnologias
 
 - **Backend**: Java 21 com Spring Boot 3+
+- **Build**: Gradle 8.5
 - **Persistência**: PostgreSQL com Flyway para migrações
 - **Mensageria**: Apache Kafka
 - **Segurança**: Spring Security com JWT
 - **Containerização**: Docker e Docker Compose
+- **Testes**: JUnit 5, Mockito e Testcontainers
 
 ## Pré-requisitos
 
@@ -48,7 +50,7 @@ Este projeto utiliza uma arquitetura modular baseada em Event Sourcing e CQRS, p
 4. Execute a aplicação com perfil "dev":
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
 ### Com Docker
@@ -56,6 +58,23 @@ Este projeto utiliza uma arquitetura modular baseada em Event Sourcing e CQRS, p
 ```bash
 docker-compose up -d
 ```
+
+## Testes
+
+O projeto utiliza Testcontainers para testes de integração, permitindo testar com bancos de dados e serviços reais em containers Docker.
+
+```bash
+# Executar todos os testes
+./gradlew test
+
+# Executar apenas testes unitários
+./gradlew test --tests "*Test"
+
+# Executar apenas testes de integração
+./gradlew test --tests "*IntegrationTest"
+```
+
+Para mais informações sobre os testes de integração, consulte a [documentação de Testcontainers](docs/TESTCONTAINERS.md).
 
 ## Monitoramento e Observabilidade
 

@@ -1,0 +1,110 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.3'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.flywaydb.flyway' version '10.1.0'
+}
+
+// Import necessário para o DriverManager
+import java.sql.DriverManager
+
+group = 'com.rgbnet'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '21'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    // Substitui o embedded server default (Tomcat) por Undertow
+    implementation.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+}
+
+ext {
+    set('springCloudVersion', "2023.0.0")
+    set('testcontainersVersion', "1.19.3")
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    
+    // Excluindo Tomcat explicitamente e usando Undertow
+    implementation ('org.springframework.boot:spring-boot-starter-web') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-undertow'
+    // Dependência direta do Undertow core para acesso às classes de configuração
+    implementation 'io.undertow:undertow-core'
+    implementation 'io.undertow:undertow-servlet'
+    
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.kafka:spring-kafka'
+    
+    // Database
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.flywaydb:flyway-core'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+    
+    // H2 para desenvolvimento e testes
+    runtimeOnly 'com.h2database:h2'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'com.h2database:h2'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+flyway {
+    url = project.hasProperty('flyway.url') ? project.property('flyway.url') : 'jdbc:postgresql://localhost:5432/rgb_provider'
+    user = project.hasProperty('flyway.user') ? project.property('flyway.user') : 'postgres'
+    password = project.hasProperty('flyway.password') ? project.property('flyway.password') : 'postgres'
+    locations = ['classpath:db/migration']
+    driver = 'org.postgresql.Driver'
+}
+
+task checkPostgresConnection {
+    doLast {
+        try {
+            def conn = DriverManager.getConnection(
+                'jdbc:postgresql://localhost:5432/rgb_provider',
+                'postgres',
+                'postgres'
+            )
+            println "PostgreSQL conectado com sucesso"
+            conn.close()
+        } catch (Exception e) {
+            println "Erro ao conectar com PostgreSQL: ${e.message}"
+            throw e
+        }
+    }
+} 
