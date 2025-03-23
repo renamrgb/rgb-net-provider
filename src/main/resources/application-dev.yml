@@ -1,0 +1,23 @@
+spring:
+  # Configurações JPA para desenvolvimento
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+
+  # Desabilitar segurança para facilitar desenvolvimento
+  security:
+    basic:
+      enabled: false
+
+# Configurações de logging para desenvolvimento
+logging:
+  level:
+    root: INFO
+    com.rgbnet.provider: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE 

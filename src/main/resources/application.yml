@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: rgb-net-provider
+  
+  # Configurações do banco de dados
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rgb_provider
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  
+  # Configurações JPA
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+  
+  # Configurações Flyway
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    
+  # Configurações Kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: rgb-provider-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# Configurações do servidor
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  compression:
+    enabled: true
+    
+# Configurações de segurança
+jwt:
+  secret: ${JWT_SECRET:5ca6c391c442535ee32c5b6fcc1a0e80d1dc06f7c9a1d1fec7ba22511ceb9022}
+  expiration: 86400000 # 24 horas em milissegundos
+
+# Configurações do Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Configurações de logging
+logging:
+  level:
+    root: INFO
+    com.rgbnet.provider: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+  file:
+    name: logs/rgb-provider.log 

@@ -1,0 +1,14 @@
+* text=auto eol=lf
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+*.java linguist-language=Java
+*.kt linguist-language=Kotlin
+*.groovy linguist-language=Groovy
+
+*.jar binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary 
